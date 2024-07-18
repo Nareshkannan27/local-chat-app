@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Chat App</title>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; height: 100vh; margin: 0; }
+        #users { width: 200px; padding: 20px; border-right: 1px solid #ddd; background: #f7f7f7; }
+        #messages-container { flex-grow: 1; padding: 20px; display: flex; flex-direction: column; }
+        #messages { list-style-type: none; padding: 0; flex-grow: 1; overflow-y: auto; }
+        #messages li { padding: 8px; margin-bottom: 10px; background: #f4f4f4; border-radius: 5px; }
+        #form { display: flex; margin-top: 10px; }
+        #input { flex-grow: 1; padding: 10px; border: none; border-radius: 5px; margin-right: 10px; }
+        #send { padding: 10px; border: none; border-radius: 5px; background: #007BFF; color: white; cursor: pointer; }
+        .user { display: flex; align-items: center; margin-bottom: 10px; }
+        .user img { border-radius: 50%; width: 40px; height: 40px; margin-right: 10px; }
+        #username-form { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
+        #username-input { padding: 10px; margin-bottom: 10px; border-radius: 5px; border: 1px solid #ccc; }
+        #set-username { padding: 10px 20px; border: none; border-radius: 5px; background: #007BFF; color: white; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div id="users">
+        <h3>Users</h3>
+        <div id="user-list"></div>
+    </div>
+    <div id="messages-container">
+        <div id="username-form">
+            <input id="username-input" placeholder="Enter your username..." />
+            <button id="set-username">Set Username</button>
+        </div>
+        <ul id="messages" style="display: none;"></ul>
+        <form id="form" action="" style="display: none;">
+            <input id="input" autocomplete="off" placeholder="Type your message here..." /><button id="send">Send</button>
+        </form>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const form = document.getElementById('form');
+        const input = document.getElementById('input');
+        const messages = document.getElementById('messages');
+        const usersDiv = document.getElementById('user-list');
+        const usernameForm = document.getElementById('username-form');
+        const usernameInput = document.getElementById('username-input');
+        const setUsernameButton = document.getElementById('set-username');
+
+        setUsernameButton.addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            if (username) {
+                socket.emit('set username', username);
+                usernameForm.style.display = 'none';
+                messages.style.display = 'block';
+                form.style.display = 'flex';
+            }
+        });
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (input.value) {
+                socket.emit('chat message', input.value);
+                input.value = '';
+            }
+        });
+
+        socket.on('chat message', (data) => {
+            const item = document.createElement('li');
+            item.textContent = `${data.username}: ${data.msg}`;
+            messages.appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+
+        socket.on('user list', (users) => {
+            usersDiv.innerHTML = '';
+            users.forEach(user => {
+                const userDiv = document.createElement('div');
+                userDiv.classList.add('user');
+                userDiv.innerHTML = `<img src="${user.icon}" alt="${user.username}'s icon"> <span>${user.username}</span>`;
+                usersDiv.appendChild(userDiv);
+            });
+        });
+    </script>
+</body>
+</html>
